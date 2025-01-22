@@ -6,7 +6,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*",
+    origin: "*", // For testing. Update this to your frontend URL in production
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -14,11 +14,19 @@ app.use(
 
 app.use(express.json());
 
+// Add a health check endpoint
+app.get("/", (req, res) => {
+  res.json({ status: "CORS Proxy Server is running" });
+});
+
 const handler = async (req, res) => {
-  const path = req.query.path || "";
+  if (!req.query.path) {
+    return res.status(400).json({ error: "Path parameter is required" });
+  }
 
   try {
-    const targetUrl = `https://api.clicknship.com.ng/${path}`;
+    const targetUrl = `https://api.clicknship.com.ng/${req.query.path}`;
+    console.log("Proxying request to:", targetUrl);
 
     const response = await axios({
       method: req.method,
