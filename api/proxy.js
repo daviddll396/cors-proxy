@@ -28,6 +28,8 @@ const handler = async (req, res) => {
     }
 
     console.log("Proxying request to:", targetUrl);
+    console.log("Request method:", req.method);
+    console.log("Request headers:", req.headers);
 
     const headers = { ...req.headers };
     delete headers["host"];
@@ -48,10 +50,18 @@ const handler = async (req, res) => {
 
     res.status(response.status).json(response.data);
   } catch (error) {
-    console.error("Proxy error:", error.message);
+    console.error("Proxy error details:", {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+    });
+
     res.status(error.response?.status || 500).json({
       error: error.message,
       details: error.response?.data,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
