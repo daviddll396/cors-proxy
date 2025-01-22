@@ -7,8 +7,10 @@ const app = express();
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allowedHeaders: ["*"],
+    exposedHeaders: ["*"],
   })
 );
 
@@ -18,25 +20,30 @@ app.get("/", (req, res) => {
   res.json({ status: "CORS Proxy Server is running" });
 });
 
-// Change the handler to use URL path instead of query parameter
 const handler = async (req, res) => {
   try {
-    // Get the target URL from the path
-    const targetUrl = req.url.slice(1); // Remove the leading slash
+    const targetUrl = req.url.slice(1);
     if (!targetUrl) {
       return res.status(400).json({ error: "URL parameter is required" });
     }
 
     console.log("Proxying request to:", targetUrl);
 
+    const headers = { ...req.headers };
+    delete headers["host"];
+    delete headers["origin"];
+    delete headers["referer"];
+
     const response = await axios({
       method: req.method,
       url: targetUrl,
       data: req.method !== "GET" ? req.body : undefined,
-      headers: {
-        ...req.headers,
-        host: new URL(targetUrl).host,
-      },
+      headers: headers,
+      withCredentials: true,
+    });
+
+    Object.entries(response.headers).forEach(([key, value]) => {
+      res.setHeader(key, value);
     });
 
     res.status(response.status).json(response.data);
